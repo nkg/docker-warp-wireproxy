@@ -40,7 +40,7 @@ jobs:
       current: ${{ steps.compare.outputs.current }}
       changed: ${{ steps.compare.outputs.changed }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Resolve the upstream release
         id: compare
@@ -115,7 +115,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Bump the pinned version
         env:
