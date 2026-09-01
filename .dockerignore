@@ -1,0 +1,4 @@
+# Only go.mod and cmd/ are needed by the build; keep the context tiny.
+*
+!go.mod
+!cmd

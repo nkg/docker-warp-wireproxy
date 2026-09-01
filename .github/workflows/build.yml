@@ -1,0 +1,364 @@
+name: build
+
+on:
+  push:
+    branches: [main, master]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      wireproxy_ref:
+        description: "wireproxy tag to build (blank = use .wireproxy-version)"
+        required: false
+        type: string
+  schedule:
+    # Rebuild weekly so the image picks up base image and CA bundle updates
+    # even when neither this repo nor wireproxy has changed. New wireproxy
+    # releases are handled by watch-upstream.yml, not by this schedule.
+    - cron: "0 6 * * 1"
+  # Called by watch-upstream.yml when a new wireproxy release appears. The
+  # version arrives as an input rather than being read from the checkout,
+  # because the caller has not committed the bump yet at that point.
+  workflow_call:
+    inputs:
+      wireproxy_ref:
+        description: "wireproxy tag to build"
+        required: false
+        type: string
+
+env:
+  # A superset of every linux binary wireproxy publishes. loong64 and
+  # mips64le also compile, but need WITH_SHELL=false: no alpine image is
+  # published for them, so the bundled busybox cannot be built.
+  PLATFORMS: linux/amd64,linux/386,linux/arm/v6,linux/arm/v7,linux/arm64,linux/ppc64le,linux/riscv64,linux/s390x
+
+jobs:
+  # Single place that decides which wireproxy version this run builds, so the
+  # rest of the workflow never has to know whether it was invoked by a push, a
+  # schedule, or the upstream watcher.
+  resolve:
+    name: resolve version
+    runs-on: ubuntu-latest
+    outputs:
+      wireproxy_ref: ${{ steps.pick.outputs.ref }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Pick the wireproxy version
+        id: pick
+        env:
+          INPUT_REF: ${{ inputs.wireproxy_ref }}
+        run: |
+          set -euo pipefail
+          if [ -n "${INPUT_REF:-}" ]; then
+            ref="$INPUT_REF"
+            echo "using version from workflow input: $ref"
+          else
+            ref=$(tr -d '[:space:]' < .wireproxy-version)
+            echo "using version from .wireproxy-version: $ref"
+          fi
+          if [ -z "$ref" ]; then
+            echo "::error::could not determine a wireproxy version to build"; exit 1
+          fi
+          echo "ref=$ref" >> "$GITHUB_OUTPUT"
+
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+
+      - name: Verify formatting
+        run: |
+          unformatted=$(gofmt -l ./cmd)
+          if [ -n "$unformatted" ]; then
+            echo "These files need gofmt:"; echo "$unformatted"; exit 1
+          fi
+
+      - run: go vet ./...
+      - run: go test -race -cover ./...
+
+      # .wireproxy-version is the source of truth; the Dockerfile ARG defaults
+      # exist so that a bare `docker build .` works. Catch them drifting apart.
+      - name: Version pins agree
+        run: |
+          set -euo pipefail
+          pinned=$(tr -d '[:space:]' < .wireproxy-version)
+          bad=0
+          while read -r line; do
+            got=${line#*=}
+            if [ "$got" != "$pinned" ]; then
+              echo "::error::Dockerfile has WIREPROXY_REF=$got but .wireproxy-version says $pinned"
+              bad=1
+            fi
+          done < <(grep -o 'ARG WIREPROXY_REF=.*' Dockerfile)
+          exit $bad
+
+  # Proves every advertised platform actually compiles, without waiting on a
+  # full image build. Fast enough to gate the build job.
+  cross-compile:
+    name: cross-compile ${{ matrix.goarch }}${{ matrix.goarm }}
+    runs-on: ubuntu-latest
+    needs: [resolve]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { goarch: amd64 }
+          - { goarch: "386" }
+          - { goarch: arm, goarm: "6" }
+          - { goarch: arm, goarm: "7" }
+          - { goarch: arm64 }
+          - { goarch: ppc64le }
+          - { goarch: riscv64 }
+          - { goarch: s390x }
+          - { goarch: loong64 }
+          - { goarch: mips64le }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+
+      - name: Build warp-reg
+        env:
+          GOOS: linux
+          GOARCH: ${{ matrix.goarch }}
+          GOARM: ${{ matrix.goarm }}
+          CGO_ENABLED: "0"
+        run: go build -trimpath -ldflags "-s -w" -o /dev/null ./cmd/warp-reg
+
+      - name: Build wireproxy ${{ needs.resolve.outputs.wireproxy_ref }}
+        env:
+          GOOS: linux
+          GOARCH: ${{ matrix.goarch }}
+          GOARM: ${{ matrix.goarm }}
+          CGO_ENABLED: "0"
+          WIREPROXY_REF: ${{ needs.resolve.outputs.wireproxy_ref }}
+        run: |
+          git clone --depth 1 --branch "$WIREPROXY_REF" \
+            https://github.com/whyvl/wireproxy.git /tmp/wireproxy
+          cd /tmp/wireproxy
+          go build -trimpath -ldflags "-s -w" -o /dev/null ./cmd/wireproxy
+
+  # Builds a single-arch image and proves it actually reaches WARP before
+  # anything gets published.
+  verify:
+    name: verify (amd64)
+    runs-on: ubuntu-latest
+    needs: [resolve, test, cross-compile]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build amd64 image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: warp-wireproxy:ci
+          platforms: linux/amd64
+          build-args: |
+            WIREPROXY_REF=${{ needs.resolve.outputs.wireproxy_ref }}
+            VERSION=ci-${{ github.sha }}
+            COMMIT_SHA=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Report image size
+        run: docker image ls warp-wireproxy:ci --format '{{.Repository}}:{{.Tag}} {{.Size}}'
+
+      - name: The image really contains the requested wireproxy
+        env:
+          WANT: ${{ needs.resolve.outputs.wireproxy_ref }}
+        run: |
+          set -euo pipefail
+          got=$(docker run --rm --entrypoint /usr/bin/wireproxy warp-wireproxy:ci --version 2>&1 | head -1)
+          echo "wireproxy reports: $got"
+          grep -qF "$WANT" <<<"$got" || {
+            echo "::error::image contains $got but $WANT was requested"; exit 1; }
+
+      - name: Run the container
+        run: |
+          docker run -d --name warp \
+            -p 1080:1080 -p 8080:8080 -p 9095:9095 \
+            -e METRICS_BIND=0.0.0.0:9095 \
+            warp-wireproxy:ci
+
+      - name: Wait for the healthcheck to pass
+        run: |
+          for i in $(seq 1 30); do
+            status=$(docker inspect -f '{{.State.Health.Status}}' warp 2>/dev/null || echo starting)
+            echo "attempt $i: $status"
+            [ "$status" = "healthy" ] && exit 0
+            [ "$status" = "unhealthy" ] && break
+            sleep 5
+          done
+          echo "container never became healthy"; docker logs warp; exit 1
+
+      - name: SOCKS5 proxy routes through WARP
+        run: |
+          trace=$(curl -fsS --max-time 30 -x socks5h://127.0.0.1:1080 \
+            https://www.cloudflare.com/cdn-cgi/trace)
+          echo "$trace"
+          echo "$trace" | grep -qE '^warp=(on|plus)$' || { echo "not routed through WARP"; exit 1; }
+
+      - name: HTTP proxy routes through WARP
+        run: |
+          trace=$(curl -fsS --max-time 30 -x http://127.0.0.1:8080 \
+            https://www.cloudflare.com/cdn-cgi/trace)
+          echo "$trace"
+          echo "$trace" | grep -qE '^warp=(on|plus)$' || { echo "not routed through WARP"; exit 1; }
+
+      - name: Prometheus endpoint exposes tunnel metrics
+        run: |
+          metrics=$(curl -fsS --max-time 10 http://127.0.0.1:9095/metrics)
+          echo "$metrics"
+          echo "$metrics" | grep -q '^warp_wireproxy_up 1$' || { echo "exporter reports down"; exit 1; }
+          echo "$metrics" | grep -q '^warp_wireproxy_ready 1$' || { echo "tunnel not ready"; exit 1; }
+          echo "$metrics" | grep -q '^warp_wireproxy_peer_receive_bytes_total{' || { echo "no peer metrics"; exit 1; }
+
+      - name: Registration is cached across restarts
+        run: |
+          before=$(docker exec warp cat /var/lib/warp-wireproxy/registration.json | sha256sum)
+          docker restart warp >/dev/null
+          sleep 15
+          after=$(docker exec warp cat /var/lib/warp-wireproxy/registration.json | sha256sum)
+          [ "$before" = "$after" ] || { echo "registration was not reused"; docker logs warp; exit 1; }
+          docker logs warp 2>&1 | grep -q "reusing cached WARP registration" \
+            || { echo "expected a cache-reuse log line"; docker logs warp; exit 1; }
+
+      - name: Container runs unprivileged
+        run: |
+          uid=$(docker inspect -f '{{.Config.User}}' warp)
+          [ "$uid" = "65532:65532" ] || { echo "unexpected user: $uid"; exit 1; }
+
+      - name: Dump logs on failure
+        if: failure()
+        run: docker logs warp || true
+
+  publish:
+    name: publish
+    runs-on: ubuntu-latest
+    needs: [resolve, verify]
+    # Never publish from a pull request: the tag would be built from untrusted
+    # code with a token that can write packages.
+    if: github.event_name != 'pull_request'
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Docker Hub is entirely optional and entirely secret-driven: nothing
+      # here names a Docker Hub account. Set DOCKERHUB_USERNAME and
+      # DOCKERHUB_TOKEN and the image starts publishing to both registries;
+      # leave them unset and only GHCR is used. Resolved once into an output so
+      # the rest of the job never has to re-test the secret.
+      - name: Is Docker Hub configured?
+        id: hub
+        env:
+          HUB_USER: ${{ secrets.DOCKERHUB_USERNAME }}
+          HUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          if [ -n "$HUB_USER" ] && [ -n "$HUB_TOKEN" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+            # The namespace is not secret once published, and echoing it makes
+            # the run log readable.
+            echo "repo=${HUB_USER}/warp-wireproxy" >> "$GITHUB_OUTPUT"
+            echo "Docker Hub enabled: ${HUB_USER}/warp-wireproxy"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "repo=" >> "$GITHUB_OUTPUT"
+            if [ -n "$HUB_USER" ] || [ -n "$HUB_TOKEN" ]; then
+              echo "::warning::Only one of DOCKERHUB_USERNAME / DOCKERHUB_TOKEN is set; skipping Docker Hub."
+            else
+              echo "Docker Hub not configured; publishing to GHCR only."
+            fi
+          fi
+
+      - name: Log in to Docker Hub
+        if: steps.hub.outputs.enabled == 'true'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Derive image tags
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ghcr.io/${{ github.repository_owner }}/warp-wireproxy
+            ${{ steps.hub.outputs.repo }}
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=wireproxy-${{ needs.resolve.outputs.wireproxy_ref }}
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,format=short
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          platforms: ${{ env.PLATFORMS }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            WIREPROXY_REF=${{ needs.resolve.outputs.wireproxy_ref }}
+            VERSION=${{ github.ref_name }}
+            COMMIT_SHA=${{ github.sha }}
+          provenance: mode=max
+          sbom: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Without this a public Docker Hub page shows no description at all.
+      # Only runs on the default branch so that branch builds do not rewrite
+      # the published description.
+      #
+      # continue-on-error because this needs a broader token than the push
+      # does: it PATCHes the repository object, which is repo administration
+      # ("Read, Write, Delete"), whereas pushing images only needs
+      # "Read & Write". A narrower token therefore publishes the image fine
+      # and merely fails to update the description -- which must not fail the
+      # release. The step annotation says so if it happens.
+      - name: Sync README to Docker Hub
+        if: steps.hub.outputs.enabled == 'true' && github.ref_name == github.event.repository.default_branch
+        continue-on-error: true
+        uses: peter-evans/dockerhub-description@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: ${{ steps.hub.outputs.repo }}
+          short-description: "Cloudflare WARP as a SOCKS5/HTTP proxy over userspace WireGuard. ~17MB, no NET_ADMIN, no root."
+          readme-filepath: ./README.md
+
+      - name: Summary
+        run: |
+          {
+            echo "### Published"
+            echo
+            echo "- wireproxy: \`${{ needs.resolve.outputs.wireproxy_ref }}\`"
+            echo "- platforms: \`${{ env.PLATFORMS }}\`"
+            echo "- Docker Hub: ${{ steps.hub.outputs.enabled == 'true' && steps.hub.outputs.repo || 'not configured (GHCR only)' }}"
+            echo
+            echo '```'
+            echo "${{ steps.meta.outputs.tags }}"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

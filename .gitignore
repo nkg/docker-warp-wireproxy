@@ -1,0 +1,7 @@
+# Build output
+/warp-reg
+/wireproxy
+*.test
+
+# Generated locally by scripts/test.sh
+wireproxy.conf

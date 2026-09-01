@@ -1,0 +1,129 @@
+# warp-wireproxy
+#
+#   one instance    docker compose up -d
+#   ten instances   docker compose up -d --scale warp=10
+#   which ports     docker compose ps
+#
+# Every replica registers its own WARP device, with its own WireGuard keys.
+# See the notes on `volumes:` below -- that property is easy to destroy by
+# accident. (Egress addresses usually differ between instances too, but that
+# is Cloudflare anycast choosing per session, not something the tunnel
+# identity guarantees.)
+
+services:
+  warp:
+    image: ghcr.io/nkg/warp-wireproxy:latest
+    restart: unless-stopped
+
+    # Deliberately no container_name: names must be unique, so setting one
+    # limits you to a single replica.
+
+    ports:
+      # Host-side is a RANGE, container-side is fixed. Compose gives each
+      # replica the next free host port in the range, so scaling needs no
+      # other change. Widen the range to go beyond ten.
+      #
+      # The container always listens on 1080/8080 internally. With the
+      # default bridge networking each replica has its own network namespace,
+      # so the internal ports never collide and only the host side varies.
+      #
+      # That stops being true if you attach instances to a shared namespace
+      # (network_mode: "service:..." / "container:..."): they then share one
+      # port space, and every instance needs its own SOCKS5_PORT, HTTP_PORT,
+      # INFO_BIND and METRICS_BIND. See "Shared network namespaces" in the
+      # README.
+      - "${SOCKS5_PORTS:-1080-1089}:1080"
+      - "${HTTP_PORTS:-8080-8089}:8080"
+      # - "${METRICS_PORTS:-9095-9104}:9095"   # needs METRICS_BIND below
+
+    environment:
+      TZ: UTC
+
+      # --- proxy auth (both must be set, or neither) ---
+      # SOCKS5_USER: admin
+      # SOCKS5_PASSWD: changeme
+      # HTTP_USER: admin
+      # HTTP_PASSWD: changeme
+
+      # --- Prometheus exporter (opt-in; costs nothing when unset) ---
+      # METRICS_BIND: 0.0.0.0:9095
+
+      # --- tunnel tuning ---
+      # WARP_MTU: 1280
+      # DNS_SERVERS: 1.1.1.1, 1.0.0.1, 2606:4700:4700::1111, 2606:4700:4700::1001
+
+      # The generated config normally lands in /etc/wireproxy, which the
+      # read_only root filesystem below makes unwritable. Putting it in the
+      # state directory keeps the root filesystem immutable.
+      WIREPROXY_CONF: /var/lib/warp-wireproxy/wireproxy.conf
+
+    volumes:
+      # ANONYMOUS volume, deliberately. Each replica gets its own, so each
+      # registers a separate WARP device and gets a different egress IP, while
+      # still reusing its registration across restarts.
+      #
+      # Do NOT replace this with a named volume unless you are running exactly
+      # one instance: a named volume is shared by every replica, so they would
+      # all load the same WireGuard keys, present as one device, and race to
+      # write the same registration.json. `docker compose down -v` removes
+      # these along with the containers.
+      - /var/lib/warp-wireproxy
+
+    # wireproxy is entirely userspace. No NET_ADMIN, no SYS_MODULE, no
+    # /dev/net/tun, no /lib/modules, no privileged, no sysctls.
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+
+    healthcheck:
+      test: ["CMD", "/usr/bin/warp-reg", "health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      # Registration plus the first handshake; raised a little because many
+      # replicas starting at once take longer to all get through.
+      start_period: 40s
+
+# ---------------------------------------------------------------------------
+# Fixed per-instance ports instead of a range
+#
+# `--scale` assigns host ports from the range in start order, which is fine
+# when you discover them with `docker compose ps`, but not if you need a
+# specific port pinned to a specific instance. In that case declare the
+# instances explicitly and drop --scale:
+#
+#   x-warp: &warp
+#     image: ghcr.io/nkg/warp-wireproxy:latest
+#     restart: unless-stopped
+#     environment:
+#       WIREPROXY_CONF: /var/lib/warp-wireproxy/wireproxy.conf
+#     cap_drop: [ALL]
+#     security_opt: [no-new-privileges:true]
+#     read_only: true
+#     tmpfs: [/tmp]
+#     healthcheck:
+#       test: ["CMD", "/usr/bin/warp-reg", "health"]
+#       interval: 30s
+#       start_period: 40s
+#
+#   services:
+#     warp-a:
+#       <<: *warp
+#       ports: ["1080:1080"]
+#       volumes: [warp-a:/var/lib/warp-wireproxy]
+#     warp-b:
+#       <<: *warp
+#       ports: ["1081:1080"]
+#       volumes: [warp-b:/var/lib/warp-wireproxy]
+#
+#   volumes:
+#     warp-a:
+#     warp-b:
+#
+# Note each instance gets its OWN named volume. One volume shared between them
+# would collapse them onto a single WARP identity.
+# ---------------------------------------------------------------------------

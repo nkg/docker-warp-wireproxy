@@ -1,0 +1,182 @@
+name: watch-upstream
+
+# Watches the wireproxy repository for new releases and publishes a matching
+# image when one appears.
+#
+# The order here is deliberate: build and publish FIRST, record the new
+# version in the repo only once that succeeded. A broken upstream release
+# therefore leaves .wireproxy-version untouched and gets retried on the next
+# tick, rather than pinning the repo to something that does not build.
+
+on:
+  schedule:
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Build this wireproxy tag instead of the latest release"
+        required: false
+        type: string
+      force:
+        description: "Rebuild even if the version has not changed"
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  # Never let two ticks race to publish and commit the same bump.
+  group: watch-upstream
+  cancel-in-progress: false
+
+env:
+  UPSTREAM_REPO: whyvl/wireproxy
+
+jobs:
+  check:
+    name: check for a new release
+    runs-on: ubuntu-latest
+    outputs:
+      latest: ${{ steps.compare.outputs.latest }}
+      current: ${{ steps.compare.outputs.current }}
+      changed: ${{ steps.compare.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve the upstream release
+        id: compare
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OVERRIDE: ${{ inputs.ref }}
+          FORCE: ${{ inputs.force }}
+        run: |
+          set -euo pipefail
+
+          current=$(tr -d '[:space:]' < .wireproxy-version)
+
+          if [ -n "${OVERRIDE:-}" ]; then
+            latest="$OVERRIDE"
+            echo "using manually supplied tag: $latest"
+          else
+            # /releases/latest already excludes drafts and prereleases.
+            latest=$(gh api "repos/${UPSTREAM_REPO}/releases/latest" --jq .tag_name)
+            echo "latest release of ${UPSTREAM_REPO}: $latest"
+          fi
+
+          if [ -z "$latest" ] || [ "$latest" = "null" ]; then
+            echo "::error::could not resolve a release tag for ${UPSTREAM_REPO}"; exit 1
+          fi
+
+          # Guard against a release whose git tag is missing or renamed, which
+          # would fail much later inside the Docker build.
+          if ! git ls-remote --exit-code --tags \
+                "https://github.com/${UPSTREAM_REPO}.git" "refs/tags/${latest}" >/dev/null; then
+            echo "::error::${UPSTREAM_REPO} has no git tag ${latest}"; exit 1
+          fi
+
+          changed=false
+          if [ "$latest" != "$current" ] || [ "${FORCE:-false}" = "true" ]; then
+            changed=true
+          fi
+
+          echo "current=$current" >> "$GITHUB_OUTPUT"
+          echo "latest=$latest"   >> "$GITHUB_OUTPUT"
+          echo "changed=$changed" >> "$GITHUB_OUTPUT"
+
+          {
+            echo "### Upstream check"
+            echo
+            echo "| | |"
+            echo "|---|---|"
+            echo "| watching | \`${UPSTREAM_REPO}\` |"
+            echo "| pinned | \`$current\` |"
+            echo "| latest | \`$latest\` |"
+            echo "| action | $([ "$changed" = true ] && echo 'build and publish' || echo 'up to date, nothing to do') |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # Reuses the full pipeline: tests, ten-arch cross-compile, a real
+  # warp=on check against the new build, then multi-arch publish.
+  build:
+    name: build ${{ needs.check.outputs.latest }}
+    needs: check
+    if: needs.check.outputs.changed == 'true'
+    uses: ./.github/workflows/build.yml
+    with:
+      wireproxy_ref: ${{ needs.check.outputs.latest }}
+    permissions:
+      contents: read
+      packages: write
+    secrets: inherit
+
+  record:
+    name: record the new version
+    needs: [check, build]
+    if: needs.check.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Bump the pinned version
+        env:
+          LATEST: ${{ needs.check.outputs.latest }}
+          CURRENT: ${{ needs.check.outputs.current }}
+        run: |
+          set -euo pipefail
+          printf '%s\n' "$LATEST" > .wireproxy-version
+          sed -i "s|^ARG WIREPROXY_REF=.*|ARG WIREPROXY_REF=${LATEST}|" Dockerfile
+          git diff --stat
+
+      - name: Commit and push
+        env:
+          LATEST: ${{ needs.check.outputs.latest }}
+          CURRENT: ${{ needs.check.outputs.current }}
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo "nothing to commit (already at ${LATEST})"; exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .wireproxy-version Dockerfile
+          git commit -m "build: wireproxy ${CURRENT} -> ${LATEST}" \
+                     -m "Published and verified by watch-upstream (run ${GITHUB_RUN_ID})."
+          git push
+          echo "### Recorded \`${LATEST}\`" >> "$GITHUB_STEP_SUMMARY"
+
+  # A failed upstream build is worth a notification rather than a silently red
+  # scheduled run that nobody looks at.
+  report-failure:
+    name: report failure
+    needs: [check, build]
+    if: failure() && needs.check.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Open or update a tracking issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          LATEST: ${{ needs.check.outputs.latest }}
+          CURRENT: ${{ needs.check.outputs.current }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          title="wireproxy ${LATEST} failed to build"
+
+          existing=$(gh issue list --state open --search "$title in:title" \
+                       --json number --jq '.[0].number // empty')
+
+          body=$(printf '%s\n' \
+            "Automated build of wireproxy \`${LATEST}\` failed; the pin stays at \`${CURRENT}\`." \
+            "" \
+            "Run: ${RUN_URL}" \
+            "" \
+            "The watcher retries every 6 hours, so this will reopen the same way until it passes or the pin is moved by hand.")
+
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body "$body"
+          else
+            gh issue create --title "$title" --body "$body" --label automated || \
+              gh issue create --title "$title" --body "$body"
+          fi
