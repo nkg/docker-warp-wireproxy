@@ -309,8 +309,14 @@ jobs:
           images: |
             ghcr.io/${{ github.repository_owner }}/warp-wireproxy
             ${{ steps.hub.outputs.repo }}
+          # latest=auto is the default and, combined with the type=semver
+          # entries below, points `latest` at the newest release tag. It is
+          # deliberately NOT tagged on pushes to the default branch: `latest`
+          # should mean "newest release", not "tip of main". A pre-release tag
+          # (v1.1.0-rc1) extends {{version}} but does not move `latest`.
+          flavor: |
+            latest=auto
           tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
             type=raw,value=wireproxy-${{ needs.resolve.outputs.wireproxy_ref }}
             type=ref,event=branch
             type=semver,pattern={{version}}
