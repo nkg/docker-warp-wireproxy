@@ -2,6 +2,8 @@ package main
 
 import (
 	"encoding/base64"
+	"os"
+	"strings"
 	"testing"
 )
 
@@ -239,4 +241,96 @@ func decodeBase64(t *testing.T, s string) []byte {
 		t.Fatalf("decoding %q: %v", s, err)
 	}
 	return raw
+}
+
+// TestPortAloneSetsTheListener is a regression test for image ENV defaults
+// shadowing _PORT.
+//
+// The Dockerfile used to ship SOCKS5_BIND, HTTP_BIND and INFO_BIND with the
+// same values listener() already falls back to. That looked harmless and was
+// not: _BIND wins over _PORT, and os.LookupEnv cannot distinguish an image
+// default from an operator's setting, so _PORT was read and then always
+// discarded.
+//
+// It broke precisely the case the README recommends _PORT for -- several
+// instances sharing one network namespace, each needing its own port. Every
+// instance asked for 1080, one got it, and the rest crash-looped on "address
+// already in use" while the error message advised setting SOCKS5_PORT.
+func TestPortAloneSetsTheListener(t *testing.T) {
+	for _, tc := range []struct {
+		prefix, port, want string
+	}{
+		{"SOCKS5", "1083", "0.0.0.0:1083"},
+		{"HTTP", "8083", "0.0.0.0:8083"},
+	} {
+		t.Run(tc.prefix, func(t *testing.T) {
+			t.Setenv("WARP_STATE_DIR", t.TempDir())
+			t.Setenv(tc.prefix+"_PORT", tc.port)
+
+			s, err := LoadSettings()
+			if err != nil {
+				t.Fatalf("LoadSettings: %v", err)
+			}
+			got := s.Socks5.Bind
+			if tc.prefix == "HTTP" {
+				got = s.HTTP.Bind
+			}
+			if got != tc.want {
+				t.Errorf("%s_PORT=%s gave bind %q, want %q -- something is "+
+					"setting %s_BIND and shadowing it", tc.prefix, tc.port,
+					got, tc.want, tc.prefix)
+			}
+		})
+	}
+}
+
+// TestPortsDifferPerInstance is the shared-namespace case from the README:
+// two instances given only a port must end up on different addresses.
+func TestPortsDifferPerInstance(t *testing.T) {
+	binds := make(map[string]bool)
+	for _, port := range []string{"1080", "1081", "1082"} {
+		t.Setenv("WARP_STATE_DIR", t.TempDir())
+		t.Setenv("SOCKS5_PORT", port)
+
+		s, err := LoadSettings()
+		if err != nil {
+			t.Fatalf("LoadSettings: %v", err)
+		}
+		if binds[s.Socks5.Bind] {
+			t.Fatalf("SOCKS5_PORT=%s produced a duplicate bind %q: instances "+
+				"sharing a network namespace would collide", port, s.Socks5.Bind)
+		}
+		binds[s.Socks5.Bind] = true
+	}
+}
+
+// TestDockerfileDoesNotShadowPortVariables guards the Dockerfile, because the
+// Go tests above cannot: they read the process environment, and the bug was an
+// image ENV that only exists inside a container.
+//
+// Any *_BIND set as an image default silently disables the matching *_PORT for
+// every user of the image, since _BIND wins and os.LookupEnv cannot tell an
+// image default from an operator's value. warp-reg already falls back to the
+// same addresses in code, so an ENV here buys nothing and costs _PORT.
+func TestDockerfileDoesNotShadowPortVariables(t *testing.T) {
+	data, err := os.ReadFile("../../Dockerfile")
+	if err != nil {
+		t.Skipf("no Dockerfile to check: %v", err)
+	}
+
+	for _, line := range strings.Split(string(data), "\n") {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "#") {
+			continue
+		}
+		for _, name := range []string{"SOCKS5_BIND", "HTTP_BIND"} {
+			if strings.Contains(trimmed, name+"=") {
+				t.Errorf("Dockerfile sets %s (%q). That shadows %s_PORT for "+
+					"everyone: _BIND wins, and nothing can distinguish an "+
+					"image default from an operator's value. listener() "+
+					"already defaults to the same address in code.",
+					name, trimmed, strings.TrimSuffix(name, "_BIND"))
+			}
+		}
+	}
 }

@@ -1,0 +1,939 @@
+{
+  "version": 4,
+  "timestamp": 1785990852,
+  "servers": [
+    {
+      "vpn": "openvpn",
+      "country": "Argentina",
+      "city": "Buenos Aires",
+      "hostname": "ar-bue.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "181.119.160.59"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "Australia",
+      "city": "Brisbane",
+      "hostname": "au-bri.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "103.108.95.139"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "Australia",
+      "city": "Melbourne",
+      "hostname": "au-per.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "103.231.89.219"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "Australia",
+      "city": "Perth",
+      "hostname": "au-mel.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "103.231.88.203"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "Australia",
+      "city": "Sydney",
+      "hostname": "au-syd.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "143.244.63.96"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "Austria",
+      "city": "Wien",
+      "hostname": "at-wie.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "185.9.19.91"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "Belgium",
+      "city": "Brussels",
+      "hostname": "be-bru.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "185.104.186.211"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "Brazil",
+      "city": "Sao Paulo",
+      "hostname": "br-sao.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "45.162.230.59"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "Bulgaria",
+      "city": "Sofia",
+      "hostname": "bg-sof.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "185.94.192.163"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "Canada",
+      "city": "Montreal",
+      "hostname": "ca-mon.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "37.120.237.163",
+        "87.101.92.131"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "Canada",
+      "city": "Toronto",
+      "hostname": "ca-tor.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "45.148.7.3",
+        "45.148.7.6",
+        "45.148.7.8"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "Canada",
+      "city": "Vancouver",
+      "hostname": "ca-van.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "71.19.251.26"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "Chile",
+      "city": "Santiago",
+      "hostname": "cl-san.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "216.241.14.227"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "Colombia",
+      "city": "Bogotá",
+      "hostname": "co-bog.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "201.217.220.27"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "Costa Rica",
+      "city": "San Jose",
+      "hostname": "cr-san.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "190.10.8.218"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "Cyprus",
+      "city": "Limassol",
+      "hostname": "cy-lim.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "185.106.102.229"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "Czech Republic",
+      "city": "Prague",
+      "hostname": "cz-pra.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "185.156.174.179"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "Denmark",
+      "city": "Copenhagen",
+      "hostname": "dk-cop.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "62.115.255.188",
+        "62.115.255.189"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "Estonia",
+      "city": "Tallinn",
+      "hostname": "ee-tal.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "185.155.97.140"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "Finland",
+      "city": "Espoo",
+      "hostname": "fi-esp.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "80.248.243.203"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "France",
+      "city": "Paris",
+      "hostname": "fr-par.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "91.240.64.7",
+        "91.240.64.8",
+        "91.240.64.9",
+        "91.240.64.10"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "Germany",
+      "city": "Berlin",
+      "hostname": "de-ber.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "91.240.65.3",
+        "91.240.65.6"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "Germany",
+      "city": "Frankfurt",
+      "hostname": "de-fra.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "45.148.5.4",
+        "45.148.5.5"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "Greece",
+      "city": "Athens",
+      "hostname": "gr-ath.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "79.127.218.226"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "Hong Kong",
+      "hostname": "hk-hon.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "84.17.37.58"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "Hungary",
+      "city": "Budapest",
+      "hostname": "hu-bud.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "185.104.187.67"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "Iceland",
+      "city": "Reykjavik",
+      "hostname": "is-rey.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "82.221.113.210"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "India",
+      "city": "Bangalore",
+      "hostname": "in-ban.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "134.209.159.64",
+        "142.93.211.220",
+        "142.93.223.44",
+        "143.110.177.84",
+        "143.110.177.170",
+        "143.110.179.109",
+        "159.65.145.178",
+        "206.189.137.13",
+        "206.189.139.234",
+        "206.189.142.126"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "Indonesia",
+      "city": "Jakarta",
+      "hostname": "id-jak.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "23.248.170.136"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "Ireland",
+      "city": "Dublin",
+      "hostname": "ie-dub.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "217.138.222.67"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "Isle of Man",
+      "city": "Ballasalla",
+      "hostname": "im-bal.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "82.21.123.80"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "Israel",
+      "city": "Tel Aviv",
+      "hostname": "il-tel.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "5.188.95.20"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "Italy",
+      "city": "Milan",
+      "hostname": "it-mil.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "45.130.85.8",
+        "45.130.85.9",
+        "45.130.85.10",
+        "45.130.85.11",
+        "45.130.85.12",
+        "45.130.85.13"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "Japan",
+      "city": "Tokyo",
+      "hostname": "jp-tok.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "89.187.160.154",
+        "89.187.161.142"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "Lithuania",
+      "city": "Siauliai",
+      "hostname": "lt-sia.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "80.208.225.133"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "Luxembourg",
+      "city": "Luxembourg City",
+      "hostname": "lu-lux.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "92.223.88.173"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "Malaysia",
+      "city": "Kuala Lumpur",
+      "hostname": "my-kua.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "128.1.160.184"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "Malta",
+      "city": "Qormi",
+      "hostname": "mt-qor.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "130.185.255.231"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "Mexico",
+      "city": "Mexico City",
+      "hostname": "mx-mex.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "190.60.16.28"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "Moldova",
+      "city": "Chisinau",
+      "hostname": "md-chi.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "178.17.172.99"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "Netherlands",
+      "city": "Amsterdam",
+      "hostname": "nl-ams.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "45.148.6.7",
+        "45.148.6.8",
+        "45.148.6.9",
+        "45.148.6.10"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "New Zealand",
+      "city": "Auckland",
+      "hostname": "nz-auc.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "45.252.191.34"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "Nigeria",
+      "city": "Lagos",
+      "hostname": "ng-lag.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "23.248.172.173"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "Norway",
+      "city": "Oslo",
+      "hostname": "no-osl.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "91.205.186.26"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "Panama",
+      "city": "Panama City",
+      "hostname": "pa-pan.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "200.110.155.235"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "Philippines",
+      "city": "Manila",
+      "hostname": "ph-man.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "128.1.209.12"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "Poland",
+      "city": "Torun",
+      "hostname": "pl-tor.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "91.236.55.255",
+        "185.72.199.130",
+        "195.177.216.83",
+        "195.177.216.97"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "Portugal",
+      "city": "Lisbon",
+      "hostname": "pt-lis.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "130.185.85.107"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "Romania",
+      "city": "Bucharest",
+      "hostname": "ro-buk.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "89.40.181.203"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "Serbia",
+      "city": "Belgrade",
+      "hostname": "rs-bel.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "141.98.103.166"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "Singapore",
+      "hostname": "sg-sin.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "143.244.33.81"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "Slovakia",
+      "city": "Bratislava",
+      "hostname": "sk-bra.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "46.29.2.168"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "South Africa",
+      "city": "Johannesburg",
+      "hostname": "za-joh.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "129.232.185.115",
+        "129.232.209.235"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "South Korea",
+      "city": "Seoul",
+      "hostname": "kr-seo.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "92.223.73.37"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "Spain",
+      "city": "Madrid",
+      "hostname": "es-mad.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "91.240.66.5",
+        "91.240.66.6"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "Sweden",
+      "city": "Gothenburg",
+      "hostname": "se-got.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "91.240.67.12",
+        "91.240.67.13"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "Sweden",
+      "city": "Kista",
+      "hostname": "se-kis.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "193.187.88.216",
+        "193.187.88.217",
+        "193.187.88.218",
+        "193.187.88.219",
+        "193.187.88.220",
+        "193.187.88.222"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "Sweden",
+      "city": "Stockholm",
+      "hostname": "se-sto.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "45.130.87.3",
+        "45.130.87.5",
+        "45.130.87.7",
+        "45.130.87.9",
+        "45.130.87.12",
+        "45.130.87.14",
+        "45.130.87.16",
+        "45.130.87.18",
+        "91.240.67.14",
+        "91.240.67.15",
+        "91.240.67.16",
+        "91.240.67.17",
+        "91.240.67.18",
+        "91.240.67.19"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "Switzerland",
+      "city": "Zurich",
+      "hostname": "ch-zur.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "45.148.4.3",
+        "80.239.178.125"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "Taiwan",
+      "city": "Taipei",
+      "hostname": "tw-tai.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "2.58.241.51"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "Thailand",
+      "city": "Bangkok",
+      "hostname": "th-ban.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "103.27.203.234"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "Turkey",
+      "city": "Istanbul",
+      "hostname": "tr-ist.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "92.38.180.30"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "Ukraine",
+      "city": "Nikolaev",
+      "hostname": "ua-nik.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "194.54.83.21"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "United Arab Emirates",
+      "city": "Dubai",
+      "hostname": "ae-dub.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "45.9.249.59"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "United Kingdom",
+      "city": "London",
+      "hostname": "uk-lon.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "193.180.119.66",
+        "193.180.119.67",
+        "193.180.119.68",
+        "193.180.119.69",
+        "193.180.119.70",
+        "193.180.119.71",
+        "193.180.119.72"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "United Kingdom",
+      "city": "Manchester",
+      "hostname": "uk-man.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "185.206.227.181"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "United States of America",
+      "city": "Atlanta",
+      "hostname": "us-atl.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "89.187.170.130",
+        "138.199.2.53"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "United States of America",
+      "city": "Buffalo",
+      "hostname": "us-buf.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "172.245.13.115",
+        "192.210.199.35"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "United States of America",
+      "city": "Chicago",
+      "hostname": "us-chi.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "143.244.60.90",
+        "185.93.1.114"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "United States of America",
+      "city": "Dallas",
+      "hostname": "us-dal.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "89.187.164.97"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "United States of America",
+      "city": "Denver",
+      "hostname": "us-den.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "84.17.63.67"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "United States of America",
+      "city": "Las Vegas",
+      "hostname": "us-las.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "82.102.30.19"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "United States of America",
+      "city": "Los Angeles",
+      "hostname": "us-los.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "89.187.185.78",
+        "185.152.67.132"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "United States of America",
+      "city": "Miami",
+      "hostname": "us-mia.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "195.181.163.139"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "United States of America",
+      "city": "New Jersey",
+      "hostname": "us-jer.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "193.37.253.2"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "United States of America",
+      "city": "New York",
+      "hostname": "us-nyc.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "45.130.86.3",
+        "45.130.86.5",
+        "45.130.86.8",
+        "45.130.86.10",
+        "45.130.86.12"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "United States of America",
+      "city": "Phoenix",
+      "hostname": "us-pho.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "82.102.30.131"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "United States of America",
+      "city": "Seattle",
+      "hostname": "us-sea.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "84.17.41.30"
+      ]
+    },
+    {
+      "vpn": "openvpn",
+      "country": "Vietnam",
+      "city": "Ho Chi Minh City",
+      "hostname": "vn-hoc.pvdata.host",
+      "tcp": true,
+      "udp": true,
+      "ips": [
+        "210.2.64.5"
+      ]
+    }
+  ]
+}
