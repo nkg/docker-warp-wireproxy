@@ -1,0 +1,192 @@
+# warp-wireproxy behind gluetun
+#
+# gluetun holds a VPN tunnel; each warp-wireproxy joins its network namespace
+# and layers a distinct Cloudflare WARP identity on top. Traffic therefore
+# leaves from a Cloudflare address in the VPN's region, and each instance is a
+# separate WARP device:
+#
+#   client -> host:41001 -> [ gluetun ns ] warp-1 -> WARP -> site
+#   client -> host:41002 -> [ gluetun ns ] warp-2 -> WARP -> site
+#
+# Two regions with two WARP instances each are shown; add or remove instances
+# by copying a block and moving the ports.
+#
+# ---------------------------------------------------------------------------
+# THE ONE RULE
+#
+# Containers joined with network_mode: "service:..." SHARE a single network
+# namespace, and therefore a single port space. Two consequences:
+#
+#   1. Every listener in a namespace needs its own port -- including
+#      INFO_BIND, whose default (127.0.0.1:9080) is identical for every
+#      instance. Changing only the proxy ports is the usual mistake; warp-reg
+#      refuses to start and says so.
+#   2. Ports are published on the GLUETUN service, never on the warp
+#      services. A container that joins another's namespace may not declare
+#      `ports:` of its own -- Compose rejects it.
+#
+# Port scheme used below, per gluetun namespace:
+#
+#   instance 1   SOCKS5 1080   info 127.0.0.1:9080
+#   instance 2   SOCKS5 1081   info 127.0.0.1:9081
+#
+# The HTTP proxy is switched off (HTTP_BIND: "") to keep the shared port space
+# clear; set it to a distinct port per instance if you want it.
+# ---------------------------------------------------------------------------
+
+# warp-reg renders wireproxy.conf into /etc/wireproxy on every start, which
+# read_only forbids. A tmpfs restores that one directory. The config is
+# rebuilt each boot from the registration cached in the named volume, so
+# nothing is lost by it being ephemeral -- and the private key never touches
+# a disk. Listed per service rather than in the anchor below: a service's own
+# `volumes:` replaces the merged one entirely, it does not append to it.
+x-conf-tmpfs: &conf-tmpfs
+  type: tmpfs
+  target: /etc/wireproxy
+  tmpfs:
+    # A tmpfs mounts root-owned and Compose cannot set its uid, so the
+    # container's unprivileged user (65532) needs a world-writable directory
+    # to create the file in -- 1777, sticky, exactly like /tmp. The config
+    # itself is written 0600 and owned by that user, so the private key is
+    # not exposed by this. The LEADING ZERO is required: Compose reads `1777`
+    # as decimal, which is mode 0o3361 and unusable.
+    mode: 01777
+
+x-warp: &warp
+  image: ghcr.io/nkg/warp-wireproxy:latest
+  restart: unless-stopped
+  # No ports here: they belong to the gluetun service this attaches to.
+  # No cap_add, no privileged, no sysctls, no /dev/net/tun -- wireproxy is
+  # entirely userspace. gluetun needs those; this does not.
+  cap_drop:
+    - ALL
+  security_opt:
+    - no-new-privileges:true
+  read_only: true
+  tmpfs:
+    - /tmp
+  healthcheck:
+    # There is no curl in the image. warp-reg health probes wireproxy's
+    # /readyz, which is backed by ICMP echoes that traverse the tunnel, so it
+    # reports on WARP rather than on a listening socket.
+    test: ["CMD", "/usr/bin/warp-reg", "health"]
+    interval: 30s
+    timeout: 5s
+    retries: 3
+    # Allows for the VPN to settle, then WARP registration and a handshake.
+    start_period: 60s
+
+services:
+  # =========================================================================
+  # US East
+  # =========================================================================
+  vpn-us-east:
+    image: qmcgaw/gluetun:latest
+    container_name: vpn-us-east
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    ports:
+      # Every port for every warp instance inside this namespace.
+      - "41001:1080" # warp-us-east-1 SOCKS5
+      - "41002:1081" # warp-us-east-2 SOCKS5
+    environment:
+      VPN_TYPE: openvpn
+      TZ: America/New_York
+    env_file: .env
+
+  warp-us-east-1:
+    <<: *warp
+    container_name: warp-us-east-1
+    network_mode: "service:vpn-us-east"
+    environment:
+      SOCKS5_PORT: 1080
+      HTTP_BIND: ""
+      INFO_BIND: 127.0.0.1:9080
+      TZ: America/New_York
+    volumes:
+      - *conf-tmpfs
+      - warp-us-east-1:/var/lib/warp-wireproxy
+    depends_on:
+      vpn-us-east:
+        # Wait for the tunnel, so WARP registers through the VPN and not
+        # through your own address.
+        condition: service_healthy
+
+  warp-us-east-2:
+    <<: *warp
+    container_name: warp-us-east-2
+    network_mode: "service:vpn-us-east"
+    environment:
+      SOCKS5_PORT: 1081
+      HTTP_BIND: ""
+      INFO_BIND: 127.0.0.1:9081 # must differ from instance 1
+      TZ: America/New_York
+    volumes:
+      - *conf-tmpfs
+      - warp-us-east-2:/var/lib/warp-wireproxy
+    depends_on:
+      vpn-us-east:
+        condition: service_healthy
+
+  # =========================================================================
+  # EU West
+  # =========================================================================
+  vpn-eu-west:
+    image: qmcgaw/gluetun:latest
+    container_name: vpn-eu-west
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    ports:
+      - "42001:1080" # warp-eu-west-1 SOCKS5
+      - "42002:1081" # warp-eu-west-2 SOCKS5
+    environment:
+      VPN_TYPE: openvpn
+      TZ: Europe/London
+    env_file: .env
+
+  warp-eu-west-1:
+    <<: *warp
+    container_name: warp-eu-west-1
+    network_mode: "service:vpn-eu-west"
+    environment:
+      SOCKS5_PORT: 1080
+      HTTP_BIND: ""
+      INFO_BIND: 127.0.0.1:9080
+      TZ: Europe/London
+    volumes:
+      - *conf-tmpfs
+      - warp-eu-west-1:/var/lib/warp-wireproxy
+    depends_on:
+      vpn-eu-west:
+        condition: service_healthy
+
+  warp-eu-west-2:
+    <<: *warp
+    container_name: warp-eu-west-2
+    network_mode: "service:vpn-eu-west"
+    environment:
+      SOCKS5_PORT: 1081
+      HTTP_BIND: ""
+      INFO_BIND: 127.0.0.1:9081
+      TZ: Europe/London
+    volumes:
+      - *conf-tmpfs
+      - warp-eu-west-2:/var/lib/warp-wireproxy
+    depends_on:
+      vpn-eu-west:
+        condition: service_healthy
+
+# Each instance gets its OWN volume, so each is a separate WARP device with
+# its own keys. One volume shared between them would collapse every instance
+# onto a single WireGuard identity while still appearing to work.
+volumes:
+  warp-us-east-1:
+  warp-us-east-2:
+  warp-eu-west-1:
+  warp-eu-west-2:

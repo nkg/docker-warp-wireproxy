@@ -160,7 +160,15 @@ instances in the same namespace.
 
 `INFO_BIND` is the one that catches people. It defaults to `127.0.0.1:9080`
 for every instance, so a second instance collides *even when you have
-correctly given it a different SOCKS5 port*. warp-reg probes all of its
+correctly given it a different SOCKS5 port*.
+
+> Before v1.0.1 the image also shipped `SOCKS5_BIND`, `HTTP_BIND` and
+> `INFO_BIND` as `ENV` defaults. Because `_BIND` wins over `_PORT`, and nothing
+> can distinguish an image default from a value you set, `SOCKS5_PORT` and
+> `HTTP_PORT` were read and then discarded — so every instance in a shared
+> namespace bound 1080, one won, and the rest crash-looped on "address already
+> in use". On those versions, set `SOCKS5_BIND=0.0.0.0:1081` rather than
+> `SOCKS5_PORT=1081`. warp-reg probes all of its
 listeners before registering and fails with a message naming the variable,
 rather than letting wireproxy panic with a stack trace after a WARP device has
 already been enrolled:

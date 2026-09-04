@@ -152,11 +152,22 @@ COPY --from=warp-reg-build /out/warp-reg /usr/bin/warp-reg
 # WireGuard module, and therefore no reason to run as root.
 USER 65532:65532
 
+# SOCKS5_BIND, HTTP_BIND and INFO_BIND are deliberately NOT set here.
+#
+# warp-reg already falls back to exactly these values in code
+# (listener("SOCKS5", "0.0.0.0:1080") and friends), so setting them again
+# here changed nothing about the defaults -- but it did break SOCKS5_PORT and
+# HTTP_PORT completely. `_BIND` wins over `_PORT`, and os.LookupEnv cannot
+# tell an image default from something the operator set, so `_PORT` was read
+# and then always overridden.
+#
+# That mattered most in the case the README recommends `_PORT` for: several
+# instances sharing one network namespace, where each needs its own port.
+# Every instance asked for 1080, exactly one got it, and the rest crash-looped
+# on "address already in use" -- while warp-reg's own error message advised
+# setting SOCKS5_PORT.
 ENV WARP_STATE_DIR=/var/lib/warp-wireproxy \
-    WIREPROXY_CONF=/etc/wireproxy/wireproxy.conf \
-    SOCKS5_BIND=0.0.0.0:1080 \
-    HTTP_BIND=0.0.0.0:8080 \
-    INFO_BIND=127.0.0.1:9080
+    WIREPROXY_CONF=/etc/wireproxy/wireproxy.conf
 
 # Metadata only: EXPOSE documents the default listeners. It does not bind,
 # publish or reserve anything, so it never constrains the port environment
