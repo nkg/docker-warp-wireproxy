@@ -3,5 +3,10 @@
 /wireproxy
 *.test
 
-# Generated locally by scripts/test.sh
-wireproxy.conf
+# WireGuard / wireproxy configs — may carry private keys, never commit
+# (scripts/test.sh generates wireproxy.conf locally)
+*.conf
+
+# Stray artifacts pulled out of containers or fetched by mistake
+/servers/
+/fsSL
